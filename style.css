@@ -1,1 +1,98 @@
+const { motion, AnimatePresence } = FramerMotion;
+const { useState, useEffect } = React;
 
+const App = () => {
+    const [distance, setDistance] = useState(5.0);
+    const [status, setStatus] = useState('safe'); // safe, warning, danger
+
+    // Simulate RF Distance Logic
+    useEffect(() => {
+        const interval = setInterval(() => {
+            setDistance(prev => {
+                const next = prev - 0.1;
+                return next < 0 ? 10 : next;
+            });
+        }, 500);
+        return () => clearInterval(interval);
+    }, []);
+
+    // ML Classification Logic based on RF Distance
+    useEffect(() => {
+        if (distance < 1.5) setStatus('danger');
+        else if (distance < 4.0) setStatus('warning');
+        else setStatus('safe');
+    }, [distance]);
+
+    const config = {
+        safe: { color: 'text-green-500', label: 'ZONE CLEAR', bg: 'bg-green-500/10' },
+        warning: { color: 'text-amber-500', label: 'CAUTION: OBJECT DETECTED', bg: 'bg-amber-500/10' },
+        danger: { color: 'text-red-500', label: 'CRITICAL: IMMEDIATE PROXIMITY', bg: 'bg-red-500/20' }
+    };
+
+    return (
+        <div className={`min-h-screen bg-grid transition-colors duration-500 ${status === 'danger' ? 'bg-red-950/10' : ''}`}>
+            {/* Full Screen Alert for Danger Mode */}
+            <AnimatePresence>
+                {status === 'danger' && (
+                    <motion.div 
+                        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-[100] border-[10px] border-red-600 pointer-events-none animate-pulse"
+                    />
+                )}
+            </AnimatePresence>
+
+            <header className="p-6 flex justify-between items-center border-b border-white/5 bg-black/50 backdrop-blur-xl">
+                <div>
+                    <h1 className="text-2xl font-black tracking-tighter text-cyan-400">ESP32-ROBOTICS</h1>
+                    <p className="text-[10px] font-mono text-gray-500 uppercase">RF-Assisted Distance Estimation System</p>
+                </div>
+                <div className={`px-4 py-1 rounded-full font-mono text-xs border ${config[status].color} border-current`}>
+                    {config[status].label}
+                </div>
+            </header>
+
+            <main className="p-8 grid grid-cols-1 lg:grid-cols-3 gap-8 max-w-7xl mx-auto">
+                {/* Radar Display Component */}
+                <div className="lg:col-span-2 bg-gray-900/40 rounded-3xl border border-white/5 relative aspect-square lg:aspect-video overflow-hidden flex items-center justify-center">
+                    <div className="absolute inset-0 radar-sweep opacity-20" />
+                    <div className="relative text-center">
+                        <motion.div 
+                            animate={{ scale: status === 'danger' ? [1, 1.1, 1] : 1 }}
+                            transition={{ repeat: Infinity, duration: 0.5 }}
+                            className={`text-9xl font-mono font-black ${config[status].color}`}
+                        >
+                            {distance.toFixed(1)}m
+                        </motion.div>
+                        <p className="text-gray-500 font-mono tracking-widest mt-2 uppercase">Current Distance</p>
+                    </div>
+                </div>
+
+                {/* Metrics Sidebar */}
+                <div className="space-y-6">
+                    <div className="p-6 bg-white/5 rounded-2xl border border-white/10">
+                        <h3 className="text-xs font-mono text-gray-500 mb-4">ML CLASSIFICATION</h3>
+                        <div className="space-y-3">
+                            <div className="flex justify-between">
+                                <span className="text-sm">Accuracy</span>
+                                <span className="text-cyan-400 font-mono">97.4%</span>
+                            </div>
+                            <div className="flex justify-between">
+                                <span className="text-sm">Object Type</span>
+                                <span className="text-white font-mono">{distance < 2 ? 'Metallic' : 'Unknown'}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+
+            <footer className="fixed bottom-6 left-8">
+                <p className="text-[10px] font-mono text-gray-600 tracking-widest">
+                    B.TECH PROJECT 2026 | WEB-BASED ALERT SYSTEM
+                </p>
+            </footer>
+        </div>
+    );
+};
+
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(<App />);
